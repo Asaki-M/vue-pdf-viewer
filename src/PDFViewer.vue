@@ -3,44 +3,73 @@ import * as pdfjs from 'pdfjs-dist'
 import workerSrc from 'pdfjs-dist/build/pdf.worker.entry'
 import { onMounted, ref } from 'vue'
 
+import Failed from './components/Failed.vue'
+import PDFHeader from './components/Header.vue'
+
 interface DefaultPDFProps {
   src: string | ArrayBuffer
-  width: string
-  height: string
+  pageWidth?: number
+  pageHeight?: number
+  header?: boolean
 }
+
+interface PageRenderProps {
+  num: number
+}
+
+const loadingFailed = ref(false)
+const errorMsg = ref('')
+const props = defineProps<DefaultPDFProps>()
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerSrc
 
-
-const props = withDefaults(defineProps<DefaultPDFProps>(), {
-  width: '100vw',
-  height: '100vh'
-})
-
+const totalPage = ref<number>(0)
 const pageNum = ref<number>(1)
 
-onMounted(async () => {
+const fetchPage = ({
+  num
+}: PageRenderProps) => {
   const canvas = document.getElementById("pageContainer") as HTMLCanvasElement
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
-
   const loadingTask = pdfjs.getDocument(props.src)
   loadingTask.promise.then(pdf => {
-    pdf.getPage(pageNum.value).then(page => {
-      const viewport = page.getViewport({ scale: 1 })
-      canvas.width = viewport.width
-      canvas.height = viewport.height
-      const renderTask = page.render({
+    totalPage.value = pdf.numPages
+    pdf.getPage(num).then(page => {
+      const viewport = page.getViewport({ scale: 1.5 })
+      canvas.width = props.pageWidth || viewport.width
+      canvas.height = props.pageHeight || viewport.height
+      page.render({
         canvasContext: ctx,
         viewport: viewport
       })
-      renderTask.promise.then(() => {
-        console.log('render ok')
-      })
     })
+  }).catch(error => {
+    loadingFailed.value = true
+    if (error instanceof Error) {
+      errorMsg.value = error.message
+      console.error(error.message)
+    }
   })
+}
+
+onMounted(async () => {
+  fetchPage({ num: pageNum.value })
 })
+
+const handleNextPage = () => {
+  pageNum.value++
+  fetchPage({ num: pageNum.value })
+}
+const handlePrevPage = () => {
+  pageNum.value--
+  fetchPage({ num: pageNum.value })
+}
 </script>
 
 <template>
-  <canvas id="pageContainer"></canvas>
+  <div v-if="!loadingFailed">
+    <PDFHeader :total="totalPage" :current="pageNum" @nextPage="handleNextPage" @prevPage="handlePrevPage"></PDFHeader>
+    <canvas id="pageContainer"></canvas>
+  </div>
+  <Failed v-else :msg="errorMsg"></Failed>
 </template>

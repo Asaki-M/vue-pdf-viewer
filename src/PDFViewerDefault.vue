@@ -3,7 +3,7 @@ import * as pdfjs from 'pdfjs-dist'
 import workerSrc from 'pdfjs-dist/build/pdf.worker.entry'
 import * as PDFViewerLib from 'pdfjs-dist/web/pdf_viewer'
 import { onMounted, ref } from 'vue'
-import Failed from './Failed.vue'
+import Failed from './components/Failed.vue'
 
 interface DefaultPDFProps {
   src: string | ArrayBuffer
