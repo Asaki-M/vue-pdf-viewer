@@ -11,6 +11,7 @@ interface DefaultPDFProps {
   pageWidth?: number
   pageHeight?: number
   header?: boolean
+  showErrorTip?: Function
 }
 
 interface PageRenderProps {
@@ -53,7 +54,7 @@ const fetchPage = ({
 }
 
 onMounted(async () => {
-  fetchPage({ num: pageNum.value })
+  fetchPage({ num: 1 })
 })
 
 const handleNextPage = () => {
@@ -64,11 +65,16 @@ const handlePrevPage = () => {
   pageNum.value--
   fetchPage({ num: pageNum.value })
 }
+const handleChangePage = (page: number) => {
+  pageNum.value = page
+  fetchPage({ num: page })
+}
 </script>
 
 <template>
   <div v-if="!loadingFailed">
-    <PDFHeader :total="totalPage" :current="pageNum" @nextPage="handleNextPage" @prevPage="handlePrevPage"></PDFHeader>
+    <PDFHeader :total="totalPage" :current="pageNum" :showErrorTip="props.showErrorTip" @nextPage="handleNextPage"
+      @prevPage="handlePrevPage" @changePage="handleChangePage"></PDFHeader>
     <canvas id="pageContainer"></canvas>
   </div>
   <Failed v-else :msg="errorMsg"></Failed>
